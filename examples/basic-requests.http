@@ -1,1 +1,1 @@
-POST httpbin.org/post
+POST http://httpbin.org/post
