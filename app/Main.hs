@@ -1,5 +1,6 @@
 module Main where
 
+import System.Environment (getArgs)
 import Data.Aeson ((.=), object, Value)
 import qualified Data.Aeson.Key as Key
 import Data.Text (pack, Text)
@@ -9,12 +10,20 @@ import qualified Network.HTTP.Req as Req
 
 main :: IO ()
 main = do
-  filename <- getLine
-  fileContent <- readFile filename
+  args <- getArgs
+  if null args
+    then do putStrLn "No request specifications file passed."
+    else do let filename = head args
+            runSpec filename
+
+runSpec :: String -> IO ()
+runSpec specFileName = do
+  fileContent <- readFile specFileName
   let httpMethod = head (words fileContent)
   let rawUrl = head (tail (words fileContent))
   let convertedUrl = convertUrl rawUrl
-  response <- Req.runReq Req.defaultHttpConfig (request httpMethod convertedUrl)
+  response <- Req.runReq Req.defaultHttpConfig (
+    request httpMethod convertedUrl)
   T.IO.putStr (decodeUtf8 (Req.responseBody response))
 
 request :: Req.MonadHttp m => String -> Req.Url scheme -> m Req.BsResponse
