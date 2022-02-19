@@ -1,10 +1,9 @@
 module Main where
 
-import qualified Control.Monad.IO.Class as IO.Class
-import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Key as Aeson.Key
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T.Encoding
+import Data.Aeson ((.=), object, Value)
+import qualified Data.Aeson.Key as Key
+import Data.Text (pack, Text)
+import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text.IO as T.IO
 import qualified Network.HTTP.Req as Req
 
@@ -16,7 +15,7 @@ main = do
   let rawUrl = head (tail (words fileContent))
   let convertedUrl = convertUrl rawUrl
   response <- Req.runReq Req.defaultHttpConfig (request httpMethod convertedUrl)
-  T.IO.putStr (T.Encoding.decodeUtf8 (Req.responseBody response))
+  T.IO.putStr (decodeUtf8 (Req.responseBody response))
 
 request :: Req.MonadHttp m => String -> Req.Url scheme -> m Req.BsResponse
 request httpMethod url
@@ -27,28 +26,28 @@ request httpMethod url
 -- TODO: How do I type annotate this?
 -- TODO: Support for specifying the scheme
 convertUrl url
-  | length (splitUrl url) < 2 = Req.https (T.pack url)
+  | length (splitUrl url) < 2 = Req.https (pack url)
   | otherwise = foldl (Req./:) (hostAndScheme url) (tail (splitUrl url))
 
-hostAndScheme "" = Req.https (T.pack "")
+hostAndScheme "" = Req.https (pack "")
 hostAndScheme url = Req.https (head (splitUrl url))
 
-splitUrl :: String -> [T.Text]
+splitUrl :: String -> [Text]
 splitUrl "" = []
 splitUrl url = case length xs of
-    0 -> [T.pack x]
-    1 -> [T.pack x, T.pack ""] -- Ends in forward slash
-    _ -> T.pack x : splitUrl (tail xs)
+    0 -> [pack x]
+    1 -> [pack x, pack ""] -- Ends in forward slash
+    _ -> pack x : splitUrl (tail xs)
   where (x, xs) = break (== '/') url
 
-payload = Aeson.object
-  [ Aeson.Key.fromString "foo" Aeson..= "bar"
+payload = object
+  [ Key.fromString "foo" .= "bar"
   ]
 
 postJSON
     :: Req.MonadHttp m
     => Req.Url scheme 
-    -> Aeson.Value 
+    -> Value
     -> m Req.BsResponse
 postJSON url body = 
     Req.req Req.POST url (Req.ReqBodyJson body) Req.bsResponse mempty
