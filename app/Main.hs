@@ -26,9 +26,12 @@ runSpec specFileName = do
   let rawUrl = head (tail (words fileContent))
   case convertUrl rawUrl of
     Left error -> print error
-    Right x -> do response <- Req.runReq Req.defaultHttpConfig (
-                    request httpMethod x)
-                  T.IO.putStr (decodeUtf8 (Req.responseBody response))
+    Right (Left x) -> do response <- Req.runReq Req.defaultHttpConfig (
+                          request httpMethod x)
+                         T.IO.putStr (decodeUtf8 (Req.responseBody response))
+    Right (Right x) -> do response <- Req.runReq Req.defaultHttpConfig (
+                            request httpMethod x)
+                          T.IO.putStr (decodeUtf8 (Req.responseBody response))
 
 request :: Req.MonadHttp m => String -> Req.Url scheme -> m Req.BsResponse
 request httpMethod url
@@ -40,7 +43,6 @@ newtype UrlParseError = UrlParseError String
   deriving Show
 
 -- TODO: How do I type annotate this?
--- TODO: Support for specifying the scheme
 convertUrl url = do
   untilPath <- hostAndScheme url
   hostAndPath <- (case fromSequence "://" url of
@@ -49,7 +51,9 @@ convertUrl url = do
   let hostAndPathSegments = splitPath hostAndPath
   if length hostAndPathSegments < 2
     then return untilPath
-    else return (foldl (/:) untilPath (tail hostAndPathSegments))
+    else case untilPath of
+      Left x -> return (Left (foldl (/:) x (tail hostAndPathSegments)))
+      Right x -> return (Right (foldl (/:) x (tail hostAndPathSegments)))
 
 splitPath :: String -> [Text]
 splitPath "" = []
@@ -62,11 +66,13 @@ splitPath url = case length xs of
 hostAndScheme url = do
   scheme <- getScheme url
   host <- getHost url
-  return (scheme host)
+  case scheme of
+    Left schemeFunc -> return (Left (schemeFunc host))
+    Right schemeFunc -> return (Right (schemeFunc host))
 
 getScheme url = case untilSequence "://" url of
-  Just "http" -> Right Req.https -- FIXME: How can i get Req.http to work here?
-  Just "https" -> Right Req.https
+  Just "http" -> Right (Left Req.http)
+  Just "https" -> Right (Right Req.https)
   Just x -> Left (UrlParseError ("Unrecognized scheme: " ++ x))
   Nothing -> Left (UrlParseError "Could not find `://` in URL")
 
