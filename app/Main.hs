@@ -73,27 +73,19 @@ hostAndScheme
           UrlParseError
           (Either (Req.Url 'Http) (Req.Url 'Https))
 hostAndScheme url = do
-  scheme <- getScheme url
   host <- getHost url
-  case scheme of
-    Left schemeFunc -> return (Left (schemeFunc host))
-    Right schemeFunc -> return (Right (schemeFunc host))
-
-getScheme
-  :: String
-     -> Either
-          UrlParseError
-          (Either (Text -> Req.Url 'Http) (Text -> Req.Url 'Https))
-getScheme url = case untilSequence "://" url of
-  Just "http" -> Right (Left Req.http)
-  Just "https" -> Right (Right Req.https)
-  Just x -> Left (UrlParseError ("Unrecognized scheme: " ++ x))
-  Nothing -> Left (UrlParseError "Could not find `://` in URL")
+  case untilSequence "://" url of
+    Just "http" -> Right (Left (Req.http host))
+    Just "https" -> Right (Right (Req.https host))
+    Just scheme -> Left (UrlParseError ("Unsupported scheme: " ++ scheme))
+    Nothing -> Left noSchemeSeparatorError
 
 getHost :: String -> Either UrlParseError Text
 getHost url = case fromSequence "://" url of
   Just hostAndPath -> Right (head (splitPath hostAndPath))
-  Nothing -> Left (UrlParseError "Could not find `://` in URL")
+  Nothing -> Left noSchemeSeparatorError
+
+noSchemeSeparatorError = UrlParseError "Could not find `://` in URL"
 
 payload = object
   [ Key.fromString "foo" .= "bar"
