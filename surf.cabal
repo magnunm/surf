@@ -24,8 +24,8 @@ extra-source-files: CHANGELOG.md
 executable surf
     main-is:          Main.hs
 
-    -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:
+      Url
 
     build-depends:
         base ^>=4.14.3.0,
