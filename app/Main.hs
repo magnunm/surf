@@ -26,12 +26,12 @@ runSpec specFileName = do
   let rawUrl = head (tail (words fileContent))
   case convertUrl rawUrl of
     Left error -> print error
-    Right (Left x) -> do response <- Req.runReq Req.defaultHttpConfig (
-                          request httpMethod x)
-                         T.IO.putStr (decodeUtf8 (Req.responseBody response))
-    Right (Right x) -> do response <- Req.runReq Req.defaultHttpConfig (
-                            request httpMethod x)
-                          T.IO.putStr (decodeUtf8 (Req.responseBody response))
+    Right (Left url) -> do response <- Req.runReq Req.defaultHttpConfig (
+                            request httpMethod url)
+                           T.IO.putStr (decodeUtf8 (Req.responseBody response))
+    Right (Right url) -> do response <- Req.runReq Req.defaultHttpConfig (
+                              request httpMethod url)
+                            T.IO.putStr (decodeUtf8 (Req.responseBody response))
 
 request :: Req.MonadHttp m => String -> Req.Url scheme -> m Req.BsResponse
 request httpMethod url
@@ -49,23 +49,23 @@ convertUrl
           (Either (Req.Url 'Http) (Req.Url 'Https))
 convertUrl url = do
   untilPath <- hostAndScheme url
-  hostAndPath <- (case fromSequence "://" url of
-    Just x -> Right x
-    Nothing -> Left (UrlParseError "Could not find `://` in URL"))
+  hostAndPath <- case fromSequence "://" url of
+    Just hostAndPath -> Right hostAndPath
+    Nothing -> Left noSchemeSeparatorError
   let hostAndPathSegments = splitPath hostAndPath
   if length hostAndPathSegments < 2
-    then return untilPath
+    then Right untilPath
     else case untilPath of
-      Left x -> return (Left (foldl (/:) x (tail hostAndPathSegments)))
-      Right x -> return (Right (foldl (/:) x (tail hostAndPathSegments)))
+      Left url -> Right (Left (foldl (/:) url (tail hostAndPathSegments)))
+      Right url -> Right (Right (foldl (/:) url (tail hostAndPathSegments)))
 
 splitPath :: String -> [Text]
 splitPath "" = []
-splitPath url = case length xs of
-    0 -> [pack x]
-    1 -> [pack x, pack ""] -- Ends in forward slash
-    _ -> pack x : splitPath (tail xs)
-  where (x, xs) = break (== '/') url
+splitPath url = case length fromSlash of
+    0 -> [pack untilSlash]
+    1 -> [pack untilSlash, pack ""] -- Ends in forward slash
+    _ -> pack untilSlash : splitPath (tail fromSlash)
+  where (untilSlash, fromSlash) = break (== '/') url
 
 hostAndScheme
   :: String
@@ -104,13 +104,15 @@ get url =
     Req.req Req.GET url Req.NoReqBody Req.bsResponse mempty
 
 untilSequence :: (Eq a) => [a] -> [a] -> Maybe [a]
-untilSequence sequence original = if null x
+untilSequence sequence original = if null matchingInits
   then Nothing
-  else Just (take (length (head x) - length sequence) (head x))
-  where x = filter (isSuffixOf sequence) (inits original)
+  else Just (take
+              (length (head matchingInits) - length sequence)
+              (head matchingInits))
+  where matchingInits = filter (isSuffixOf sequence) (inits original)
 
 fromSequence :: (Eq a) => [a] -> [a] -> Maybe [a]
-fromSequence sequence original = if null x
+fromSequence sequence original = if null matchingTails
   then Nothing
-  else Just (drop (length sequence) (head x))
-  where x = filter (isPrefixOf sequence) (tails original)
+  else Just (drop (length sequence) (head matchingTails))
+  where matchingTails = filter (isPrefixOf sequence) (tails original)
