@@ -9,7 +9,7 @@ import Data.Text (pack, Text)
 import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text.IO as T.IO
 import qualified Network.HTTP.Req as Req
-import Network.HTTP.Req ((/:))
+import Network.HTTP.Req ((/:), Scheme( Https, Http ))
 
 main :: IO ()
 main = do
@@ -42,7 +42,11 @@ request httpMethod url
 newtype UrlParseError = UrlParseError String
   deriving Show
 
--- TODO: How do I type annotate this?
+convertUrl
+  :: String
+     -> Either
+          UrlParseError
+          (Either (Req.Url 'Http) (Req.Url 'Https))
 convertUrl url = do
   untilPath <- hostAndScheme url
   hostAndPath <- (case fromSequence "://" url of
@@ -63,6 +67,11 @@ splitPath url = case length xs of
     _ -> pack x : splitPath (tail xs)
   where (x, xs) = break (== '/') url
 
+hostAndScheme
+  :: String
+     -> Either
+          UrlParseError
+          (Either (Req.Url 'Http) (Req.Url 'Https))
 hostAndScheme url = do
   scheme <- getScheme url
   host <- getHost url
@@ -70,6 +79,11 @@ hostAndScheme url = do
     Left schemeFunc -> return (Left (schemeFunc host))
     Right schemeFunc -> return (Right (schemeFunc host))
 
+getScheme
+  :: String
+     -> Either
+          UrlParseError
+          (Either (Text -> Req.Url 'Http) (Text -> Req.Url 'Https))
 getScheme url = case untilSequence "://" url of
   Just "http" -> Right (Left Req.http)
   Just "https" -> Right (Right Req.https)
