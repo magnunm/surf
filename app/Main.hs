@@ -15,9 +15,9 @@ main :: IO ()
 main = do
   args <- getArgs
   if null args
-    then do putStrLn "No request specifications file passed."
-    else do let filename = head args
-            runSpec filename
+    then putStrLn "Error: No request specifications file passed."
+    else let filename = head args in
+         runSpec filename
 
 runSpec :: String -> IO ()
 runSpec specFileName = do
