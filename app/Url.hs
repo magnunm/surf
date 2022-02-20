@@ -8,6 +8,7 @@ import Network.HTTP.Req ((/:), Scheme( Https, Http ))
 newtype UrlParseError = UrlParseError String
   deriving Show
 
+-- | Convert a string URL to Request's Url data type
 convertUrl
   :: String
      -> Either
@@ -20,10 +21,15 @@ convertUrl url = do
     Nothing -> Left noSchemeSeparatorError
   let hostAndPathSegments = splitPath hostAndPath
   if length hostAndPathSegments < 2
-    then Right untilPath
-    else case untilPath of
-      Left url -> Right (Left (foldl (/:) url (tail hostAndPathSegments)))
-      Right url -> Right (Right (foldl (/:) url (tail hostAndPathSegments)))
+    then Right untilPath -- No path
+    else
+      let pathSegments = tail hostAndPathSegments in
+        case untilPath of
+          Left url -> Right (Left (appendPathSegements url pathSegments))
+          Right url -> Right (Right (appendPathSegements url pathSegments))
+
+appendPathSegements :: Req.Url scheme -> [Text] -> Req.Url scheme
+appendPathSegements = foldl (/:)
 
 splitPath :: String -> [Text]
 splitPath "" = []
