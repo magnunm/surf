@@ -25,7 +25,7 @@ runSpec specFileName = do
   let httpMethod = head (words fileContent)
   let rawUrl = head (tail (words fileContent))
   case convertUrl rawUrl of
-    Left (UrlParseError x) -> do putStrLn $ "Error parsing URL: " ++ x
+    Left error -> print error
     Right x -> do response <- Req.runReq Req.defaultHttpConfig (
                     request httpMethod x)
                   T.IO.putStr (decodeUtf8 (Req.responseBody response))
@@ -37,6 +37,7 @@ request httpMethod url
   | otherwise = error "FIXME"
 
 newtype UrlParseError = UrlParseError String
+  deriving Show
 
 -- TODO: How do I type annotate this?
 -- TODO: Support for specifying the scheme
