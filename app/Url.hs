@@ -6,7 +6,9 @@ import qualified Network.HTTP.Req as Req
 import Network.HTTP.Req ((/:), Scheme( Https, Http ))
 
 newtype UrlParseError = UrlParseError String
-  deriving Show
+
+instance Show UrlParseError where
+  show (UrlParseError message) = "Could not parse URL: " ++ message
 
 -- | Convert a string URL to Request's Url data type
 convertUrl
