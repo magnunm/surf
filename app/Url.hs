@@ -4,6 +4,7 @@ import Data.List (inits, tails, isPrefixOf, isSuffixOf)
 import Data.Text (pack, Text)
 import qualified Network.HTTP.Req as Req
 import Network.HTTP.Req ((/:), Scheme( Https, Http ))
+import Control.Applicative ((<$>))
 
 newtype UrlParseError = UrlParseError String
 
@@ -25,10 +26,7 @@ convertUrl url = do
   if length hostAndPathSegments < 2
     then Right untilPath -- No path
     else
-      let pathSegments = tail hostAndPathSegments in
-        case untilPath of
-          Left url -> Right (Left (appendPathSegements url pathSegments))
-          Right url -> Right (Right (appendPathSegements url pathSegments))
+      Right $ (`appendPathSegements` tail hostAndPathSegments) <$> untilPath
 
 appendPathSegements :: Req.Url scheme -> [Text] -> Req.Url scheme
 appendPathSegements = foldl (/:)
