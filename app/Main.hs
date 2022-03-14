@@ -27,15 +27,19 @@ parseSpecsFromFile specsFileName = do
   let specifications = splitIntoSpecifications fileContent
   case parseSpecs specifications of
     Left error -> putStr (show error)
-    Right requests -> do responses <- runRequests requests
-                         -- TODO: Support more than 1 specification
-                         T.IO.putStr (decodeUtf8 (Req.responseBody (head responses)))
+    Right requests -> runRequests requests >>= printResponses
 
 runRequests :: MonadIO m => [Req.Req a] -> m [a]
 runRequests = mapM runRequest
 
 runRequest :: MonadIO m => Req.Req a -> m a
 runRequest = Req.runReq Req.defaultHttpConfig
+
+printResponses :: [Req.BsResponse] -> IO ()
+printResponses responses = head <$> mapM printResponse responses
+
+printResponse :: Req.BsResponse -> IO ()
+printResponse = T.IO.putStr . decodeUtf8 . Req.responseBody
 
 newtype SpecificationParseError = SpecificationParseError String
 

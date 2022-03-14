@@ -3,3 +3,6 @@ POST https://httpbin.org/post
 # Comment separating two requests
 
 GET https://httpbin.org/get
+
+# Another comment, marking the start of the third request
+GET https://httpbin.org/get
