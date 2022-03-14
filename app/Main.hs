@@ -54,15 +54,30 @@ parseSpec
   :: (Req.MonadHttp m)
   => String
   -> Either SpecificationParseError (m Req.BsResponse)
+parseSpec [] = Left (SpecificationParseError "Empty specification")
 parseSpec specification = do
   -- TODO: Support for more than one line.
   let firstLine = head (lines specification)
-  let httpMethod = head (words firstLine)
-  let rawUrl = head (tail (words firstLine))
+  httpMethod <- getSpecMethod firstLine
+  rawUrl <- getSpecRawUrl firstLine
   case convertUrl rawUrl of
     Left error -> Left (SpecificationParseError (show error))
     Right (Left url) -> request httpMethod url
     Right (Right url) -> request httpMethod url
+
+getSpecMethod :: String -> Either SpecificationParseError String
+getSpecMethod line =
+  let lineWords = words line in
+    if null lineWords
+      then Left (SpecificationParseError "Could not find method from empty line")
+      else Right (head lineWords)
+
+getSpecRawUrl :: String -> Either SpecificationParseError String
+getSpecRawUrl line =
+  let lineWords = words line in
+    case lineWords of
+      (method:rest) -> Right (head rest)
+      _ -> Left (SpecificationParseError "Could not find URL from single word line, first word interpreted as method")
 
 request
   :: Req.MonadHttp m
@@ -100,7 +115,12 @@ splitIntoSpecifications multipleSpecs
   | otherwise = unlines firstSpec : splitIntoSpecifications (unlines rest)
   where
     asLines = lines multipleSpecs
-    (firstSpec, rest) = break isComment (dropWhile isComment asLines)
+    (firstSpec, rest) = break isComment (dropWhile isCommentOrEmpty asLines)
 
 isComment :: String -> Bool
+isComment [] = False
 isComment line = head line == '#'
+
+isCommentOrEmpty :: String -> Bool
+isCommentOrEmpty [] = True
+isCommentOrEmpty line = isComment line

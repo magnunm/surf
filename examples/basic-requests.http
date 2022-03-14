@@ -1,1 +1,5 @@
-POST http://httpbin.org/post
+POST https://httpbin.org/post
+
+# Comment separating two requests
+
+GET https://httpbin.org/get
