@@ -1,10 +1,8 @@
 module Main where
 
 import System.Environment (getArgs)
-import Data.Aeson ((.=), object, Value)
-import qualified Data.Aeson.Key as Key
 import Data.Text (pack, Text)
-import Data.Text.Encoding (decodeUtf8)
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.Text.IO as T.IO
 import qualified Network.HTTP.Req as Req
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -68,10 +66,20 @@ parseSpec specification = do
   let firstLine = head (lines specification)
   httpMethod <- getSpecMethod firstLine
   rawUrl <- getSpecRawUrl firstLine
+  let body = getSpecBody specification
   case convertUrl rawUrl of
     Left error -> Left (SpecificationParseError (show error))
-    Right (Left url) -> request httpMethod url
-    Right (Right url) -> request httpMethod url
+    Right (Left url) -> request httpMethod url body
+    Right (Right url) -> request httpMethod url body
+
+getSpecBody :: String -> Text
+getSpecBody specification =
+  if length specLines < 2
+    -- Just first line with method and URL, no body
+    then pack ""
+    -- Rest of spec interpreted as the request body, empty initial lines ignored
+    else pack $ unlines $ dropWhile ("" ==) (tail specLines)
+  where specLines = lines specification
 
 getSpecMethod :: String -> Either SpecificationParseError String
 getSpecMethod line =
@@ -91,23 +99,20 @@ request
   :: Req.MonadHttp m
   => String
   -> Req.Url scheme
+  -> Text
   -> Either SpecificationParseError (m Req.BsResponse)
-request httpMethod url
+request httpMethod url body
   | httpMethod == "GET" = Right (get url)
-  | httpMethod == "POST" = Right (postJSON url payload)
+  | httpMethod == "POST" = Right (post url body)
   | otherwise = Left (SpecificationParseError "Unsupported HTTP method")
 
-payload = object
-  [ Key.fromString "foo" .= "bar"
-  ]
-
-postJSON
+post
     :: Req.MonadHttp m
     => Req.Url scheme
-    -> Value
+    -> Text
     -> m Req.BsResponse
-postJSON url body =
-    Req.req Req.POST url (Req.ReqBodyJson body) Req.bsResponse mempty
+post url body =
+    Req.req Req.POST url (Req.ReqBodyBs (encodeUtf8 body)) Req.bsResponse mempty
 
 get :: (Req.MonadHttp m) => Req.Url scheme -> m Req.BsResponse
 get url =

@@ -1,5 +1,7 @@
 POST https://httpbin.org/post
 
+{"foo": "bar"}
+
 # Comment separating two requests
 
 GET https://httpbin.org/get
