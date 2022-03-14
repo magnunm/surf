@@ -17,14 +17,18 @@ main = do
   if null args
     then putStrLn "Error: No request specifications file passed."
     else let filename = head args in
-         parseSpecsFromFile filename
+         runSpecsFromFile filename
 
 -- | Run all the request specifications in the passed file. Each request
 -- specification is separated by a comment line (starting with `#`)
-parseSpecsFromFile :: String -> IO ()
-parseSpecsFromFile specsFileName = do
+runSpecsFromFile :: String -> IO ()
+runSpecsFromFile specsFileName = do
   fileContent <- readFile specsFileName
   let specifications = splitIntoSpecifications fileContent
+  runSpecs specifications
+
+runSpecs :: [String] -> IO ()
+runSpecs specifications =
   case parseSpecs specifications of
     Left error -> putStr (show error)
     Right requests -> runRequests requests >>= printResponses
