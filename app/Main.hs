@@ -62,7 +62,6 @@ parseSpec
   -> Either SpecificationParseError (m Req.BsResponse)
 parseSpec [] = Left (SpecificationParseError "Empty specification")
 parseSpec specification = do
-  -- TODO: Support for more than one line.
   let firstLine = head (lines specification)
   httpMethod <- getSpecMethod firstLine
   rawUrl <- getSpecRawUrl firstLine
