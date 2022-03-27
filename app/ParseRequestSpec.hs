@@ -1,5 +1,6 @@
 module ParseRequestSpec (parseSpecs, splitIntoSpecifications, SpecificationParseError) where
 
+import Data.Monoid ((<>))
 import Data.Text (pack, Text)
 import Data.Text.Encoding (encodeUtf8)
 import qualified Network.HTTP.Req as Req
@@ -43,17 +44,57 @@ parseSpec specification = do
   let body = getSpecBody specification
   case convertUrl rawUrl of
     Left error -> Left (SpecificationParseError (show error))
-    Right (Left url) -> request httpMethod url body
-    Right (Right url) -> request httpMethod url body
+    Right (Left url) -> do
+      headers <- addSpecHeaders specification mempty
+      request httpMethod url body headers
+    Right (Right url) -> do
+      headers <- addSpecHeaders specification mempty
+      request httpMethod url body headers
 
+-- | Each line right after the method and URL is interpreted as specifying a
+-- header. Add the headers to the request options.
+addSpecHeaders
+  :: String
+  -> Req.Option scheme
+  -> Either SpecificationParseError (Req.Option scheme)
+addSpecHeaders specification options =
+  if length (lines specification) < 2
+    then Right mempty
+    else
+      let headerLines = takeWhile ("" /=) (tail (lines specification))
+          addHeaderFuncs = map addColonSeparatedHeader headerLines
+      in
+        foldl (>>=) (Right options) addHeaderFuncs
+
+-- | Add a header from two colon-separated strings to the options
+addColonSeparatedHeader
+  :: String
+  -> Req.Option scheme
+  -> Either SpecificationParseError (Req.Option scheme)
+addColonSeparatedHeader line options =
+  if length rest < 2
+    then
+      Left $ SpecificationParseError (
+        "Invalid header, no value specified in '" ++ line ++ "'"
+      )
+    else
+      let value = dropWhile (' ' ==) (tail rest)
+          encodedValue = encodeUtf8 . pack $ value
+          encodedName = encodeUtf8 . pack $ name
+      in
+      Right $ options <> Req.header encodedName encodedName
+  where (name, rest) = break (':' ==) line
+
+-- | Anything after the first blank line of the specification is interpreted as
+-- the body.
 getSpecBody :: String -> Text
 getSpecBody specification =
-  if length specLines < 2
-    -- Just first line with method and URL, no body
+  if length fromFirstBlankLine < 2
+    -- No blank line or just a blank line: no body
     then pack ""
     -- Rest of spec interpreted as the request body, empty initial lines ignored
-    else pack $ unlines $ dropWhile ("" ==) (tail specLines)
-  where specLines = lines specification
+    else pack $ unlines $ dropWhile ("" ==) fromFirstBlankLine
+  where fromFirstBlankLine = dropWhile ("" /=) (lines specification)
 
 getSpecMethod :: String -> Either SpecificationParseError String
 getSpecMethod line =
@@ -74,23 +115,25 @@ request
   => String
   -> Req.Url scheme
   -> Text
+  -> Req.Option scheme
   -> Either SpecificationParseError (m Req.BsResponse)
-request httpMethod url body
-  | httpMethod == "GET" = Right (get url)
-  | httpMethod == "POST" = Right (post url body)
+request httpMethod url body headers
+  | httpMethod == "GET" = Right (get url headers)
+  | httpMethod == "POST" = Right (post url body headers)
   | otherwise = Left (SpecificationParseError "Unsupported HTTP method")
 
 post
     :: Req.MonadHttp m
     => Req.Url scheme
     -> Text
+    -> Req.Option scheme
     -> m Req.BsResponse
 post url body =
-    Req.req Req.POST url (Req.ReqBodyBs (encodeUtf8 body)) Req.bsResponse mempty
+    Req.req Req.POST url (Req.ReqBodyBs (encodeUtf8 body)) Req.bsResponse
 
-get :: (Req.MonadHttp m) => Req.Url scheme -> m Req.BsResponse
+get :: (Req.MonadHttp m) => Req.Url scheme -> Req.Option scheme -> m Req.BsResponse
 get url =
-    Req.req Req.GET url Req.NoReqBody Req.bsResponse mempty
+    Req.req Req.GET url Req.NoReqBody Req.bsResponse
 
 isComment :: String -> Bool
 isComment [] = False
