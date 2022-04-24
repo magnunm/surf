@@ -1,10 +1,15 @@
 POST https://httpbin.org/post
+Content-Type: application/json
+Content-Language: no
+Accept-Encoding: gzip
 
 {"foo": "bar"}
 
 # Comment separating two requests
 
 GET https://httpbin.org/get
+Accept-Encoding: gzip
+Baz: Qux
 
 # Another comment, marking the start of the third request
 GET https://httpbin.org/get

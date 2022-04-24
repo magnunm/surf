@@ -9,7 +9,7 @@ synopsis: A HTTP(S) client that reads requests from a file
 
 -- A URL where users can report bugs.
 -- bug-reports:
-license:            BSD3
+license:            BSD-3-Clause
 license-file:       LICENSE
 author:             Magnus Nybråten Malmquist
 maintainer:         magnusnym97@gmail.com
@@ -23,11 +23,12 @@ executable surf
     main-is:          Main.hs
 
     other-modules:
-      Url
+      Url,
+      ParseRequestSpec
 
     build-depends:
         base ^>=4.14.3.0,
-        req ^>= 3.9.2,
+        req ^>= 3.9.0,
         text ^>= 1.2.4
     hs-source-dirs:   app
     default-language: Haskell2010
