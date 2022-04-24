@@ -82,7 +82,7 @@ addColonSeparatedHeader line options =
           encodedValue = encodeUtf8 . pack $ value
           encodedName = encodeUtf8 . pack $ name
       in
-      Right $ options <> Req.header encodedName encodedName
+      Right $ options <> Req.header encodedName encodedValue
   where (name, rest) = break (':' ==) line
 
 -- | Anything after the first blank line of the specification is interpreted as
