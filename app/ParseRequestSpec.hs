@@ -1,9 +1,12 @@
-module ParseRequestSpec (parseSpecs, splitIntoSpecifications, SpecificationParseError) where
+{-# OPTIONS_GHC -Wall #-}
+module ParseRequestSpec (parseSpec, splitIntoSpecifications, SpecificationParseError) where
 
 import Data.Monoid ((<>))
+import Data.Maybe (fromMaybe)
 import Data.Text (pack, Text)
 import Data.Text.Encoding (encodeUtf8)
 import qualified Network.HTTP.Req as Req
+import Network.HTTP.Client (CookieJar)
 
 import Url (convertUrl, UrlParseError)
 
@@ -11,13 +14,6 @@ newtype SpecificationParseError = SpecificationParseError String
 
 instance Show SpecificationParseError where
   show (SpecificationParseError message) = "Error parsing request: " ++ message
-
--- | Parse multiple requests specifications, ending at the first error if any.
-parseSpecs
-  :: (Req.MonadHttp m)
-  => [String]
-  -> Either SpecificationParseError [m Req.BsResponse]
-parseSpecs = mapM parseSpec
 
 -- | Split a string containing multiple request specifications into a
 -- list of strings, where each string is a single specification
@@ -35,21 +31,23 @@ splitIntoSpecifications multipleSpecs
 parseSpec
   :: (Req.MonadHttp m)
   => String
+  -> Maybe CookieJar
   -> Either SpecificationParseError (m Req.BsResponse)
-parseSpec [] = Left (SpecificationParseError "Empty specification")
-parseSpec specification = do
+parseSpec [] _cookies = Left (SpecificationParseError "Empty specification")
+parseSpec specification cookies = do
   let firstLine = head (lines specification)
   httpMethod <- getSpecMethod firstLine
   rawUrl <- getSpecRawUrl firstLine
   let body = getSpecBody specification
+  let cookieOptions = Req.cookieJar (fromMaybe mempty cookies)
   case convertUrl rawUrl of
     Left error -> Left (SpecificationParseError (show error))
     Right (Left url) -> do
-      headers <- addSpecHeaders specification mempty
-      request httpMethod url body headers
+      options <- addSpecHeaders specification cookieOptions
+      request httpMethod url body options
     Right (Right url) -> do
-      headers <- addSpecHeaders specification mempty
-      request httpMethod url body headers
+      options <- addSpecHeaders specification cookieOptions
+      request httpMethod url body options
 
 -- | Each line right after the method and URL is interpreted as specifying a
 -- header. Add the headers to the request options.

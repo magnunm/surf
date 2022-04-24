@@ -1,0 +1,10 @@
+# A request giving a response with the Set-Cookie header foo=bar
+GET https://httpbin.org/cookies/set/foo/bar
+
+# Note the Cookie header of this subsequent POST, which includes the cookie set
+# by the above response.
+POST https://httpbin.org/post
+Content-Type: application/json
+X-Some-Other-Header: value
+
+{"some": "data"}

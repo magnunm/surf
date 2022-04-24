@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 module Main where
 
 import System.Environment (getArgs)
@@ -5,9 +6,9 @@ import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text.IO as T.IO
 import qualified Network.HTTP.Req as Req
 import Control.Monad.IO.Class (MonadIO)
+import Network.HTTP.Client (CookieJar)
 
-import Url (convertUrl, UrlParseError)
-import ParseRequestSpec (parseSpecs, splitIntoSpecifications)
+import ParseRequestSpec (parseSpec, splitIntoSpecifications)
 
 main :: IO ()
 main = do
@@ -23,22 +24,25 @@ runSpecsFromFile :: String -> IO ()
 runSpecsFromFile specsFileName = do
   fileContent <- readFile specsFileName
   let specifications = splitIntoSpecifications fileContent
-  runSpecs specifications
+  runSpecs specifications Nothing
 
-runSpecs :: [String] -> IO ()
-runSpecs specifications =
-  case parseSpecs specifications of
-    Left error -> putStr (show error)
-    Right requests -> runRequests requests >>= printResponses
-
-runRequests :: MonadIO m => [Req.Req a] -> m [a]
-runRequests = mapM runRequest
+runSpecs :: [String] -> Maybe CookieJar -> IO ()
+runSpecs [] _cookies = return ()
+runSpecs specifications cookies =
+  case parseSpec (head specifications) cookies of
+    Left err -> putStr (show err)
+    Right request -> do
+      response' <- runRequest request
+      let (newCookies, response) = extractCookieJar response'
+      printResponse response
+      putStr "\n"
+      runSpecs (tail specifications) (Just newCookies)
 
 runRequest :: MonadIO m => Req.Req a -> m a
 runRequest = Req.runReq Req.defaultHttpConfig
 
-printResponses :: [Req.BsResponse] -> IO ()
-printResponses responses = head <$> mapM printResponse responses
+extractCookieJar :: Req.BsResponse -> (CookieJar, Req.BsResponse)
+extractCookieJar response = (Req.responseCookieJar response, response)
 
 printResponse :: Req.BsResponse -> IO ()
 printResponse = T.IO.putStr . decodeUtf8 . Req.responseBody

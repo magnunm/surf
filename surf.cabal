@@ -28,6 +28,7 @@ executable surf
 
     build-depends:
         base ^>=4.14.3.0,
+        http-client ^>= 0.6.4.1,
         req ^>= 3.9.0,
         text ^>= 1.2.4
     hs-source-dirs:   app
