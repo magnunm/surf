@@ -115,22 +115,29 @@ request
   -> Req.Option scheme
   -> Either SpecificationParseError (m Req.BsResponse)
 request httpMethod url body headers
-  | httpMethod == "GET" = Right (get url headers)
-  | httpMethod == "POST" = Right (post url body headers)
-  | otherwise = Left (SpecificationParseError "Unsupported HTTP method")
-
-post
-    :: Req.MonadHttp m
-    => Req.Url scheme
-    -> Text
-    -> Req.Option scheme
-    -> m Req.BsResponse
-post url body =
-    Req.req Req.POST url (Req.ReqBodyBs (encodeUtf8 body)) Req.bsResponse
-
-get :: (Req.MonadHttp m) => Req.Url scheme -> Req.Option scheme -> m Req.BsResponse
-get url =
-    Req.req Req.GET url Req.NoReqBody Req.bsResponse
+  | httpMethod == "GET" =
+    Right $ Req.req Req.GET url Req.NoReqBody response headers
+  | httpMethod == "POST" =
+    Right $ Req.req Req.POST url preparedBody response headers
+  | httpMethod == "PATCH" =
+    Right $ Req.req Req.PATCH url preparedBody response headers
+  | httpMethod == "PUT" =
+    Right $ Req.req Req.PUT url preparedBody response headers
+  | httpMethod == "DELETE" =
+    Right $ Req.req Req.DELETE url preparedBody response headers
+  | httpMethod == "HEAD" =
+    Right $ Req.req Req.HEAD url Req.NoReqBody response headers
+  | httpMethod == "TRACE" =
+    Right $ Req.req Req.TRACE url preparedBody response headers
+  | httpMethod == "CONNECT" =
+    Right $ Req.req Req.CONNECT url preparedBody response headers
+  | httpMethod == "OPTIONS" =
+    Right $ Req.req Req.OPTIONS url Req.NoReqBody response headers
+  | otherwise =
+    Left (SpecificationParseError "Unsupported HTTP method")
+  where
+    preparedBody = Req.ReqBodyBs (encodeUtf8 body)
+    response = Req.bsResponse
 
 isComment :: String -> Bool
 isComment []   = False

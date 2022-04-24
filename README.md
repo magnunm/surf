@@ -24,5 +24,4 @@ is to create a stand-alone CLI based on a similar idea.
 ### Todo
 
 - URL query parameters
-- HTTP methods beyond `GET` and `POST`.
 - Nicer printing of responses
