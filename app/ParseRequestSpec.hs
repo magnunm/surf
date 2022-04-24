@@ -1,14 +1,13 @@
 {-# OPTIONS_GHC -Wall #-}
 module ParseRequestSpec (parseSpec, splitIntoSpecifications, SpecificationParseError) where
 
-import Data.Monoid ((<>))
 import Data.Maybe (fromMaybe)
 import Data.Text (pack, Text)
 import Data.Text.Encoding (encodeUtf8)
 import qualified Network.HTTP.Req as Req
 import Network.HTTP.Client (CookieJar)
 
-import Url (convertUrl, UrlParseError)
+import Url (convertUrl)
 
 newtype SpecificationParseError = SpecificationParseError String
 
@@ -41,7 +40,7 @@ parseSpec specification cookies = do
   let body = getSpecBody specification
   let cookieOptions = Req.cookieJar (fromMaybe mempty cookies)
   case convertUrl rawUrl of
-    Left error -> Left (SpecificationParseError (show error))
+    Left err -> Left (SpecificationParseError (show err))
     Right (Left url) -> do
       options <- addSpecHeaders specification cookieOptions
       request httpMethod url body options
@@ -105,7 +104,7 @@ getSpecRawUrl :: String -> Either SpecificationParseError String
 getSpecRawUrl line =
   let lineWords = words line in
     case lineWords of
-      (method:rest) -> Right (head rest)
+      (_method:rest) -> Right (head rest)
       _ -> Left (SpecificationParseError "Could not find URL from single word line, first word interpreted as method")
 
 request
