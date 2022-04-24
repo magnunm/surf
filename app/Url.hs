@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -Wall #-}
 module Url (UrlParseError, convertUrl) where
 
-import Data.List (inits, tails, isPrefixOf, isSuffixOf)
-import Data.Text (pack, Text)
+import           Data.List        (inits, isPrefixOf, isSuffixOf, tails)
+import           Data.Text        (Text, pack)
+import           Network.HTTP.Req (Scheme (Http, Https), (/:))
 import qualified Network.HTTP.Req as Req
-import Network.HTTP.Req ((/:), Scheme( Https, Http ))
 
 newtype UrlParseError = UrlParseError String
 
@@ -21,7 +21,7 @@ convertUrl url = do
   untilPath <- hostAndScheme url
   hostAndPath <- case fromSubList "://" url of
     Just hostAndPath -> Right hostAndPath
-    Nothing -> Left noSchemeSeparatorError
+    Nothing          -> Left noSchemeSeparatorError
   let hostAndPathSegments = splitPath hostAndPath
   if length hostAndPathSegments < 2
     then Right untilPath -- No path
@@ -47,15 +47,15 @@ hostAndScheme
 hostAndScheme url = do
   host <- getHost url
   case untilSubList "://" url of
-    Just "http" -> Right (Left (Req.http host))
+    Just "http"  -> Right (Left (Req.http host))
     Just "https" -> Right (Right (Req.https host))
-    Just scheme -> Left (UrlParseError ("Unsupported scheme: " ++ scheme))
-    Nothing -> Left noSchemeSeparatorError
+    Just scheme  -> Left (UrlParseError ("Unsupported scheme: " ++ scheme))
+    Nothing      -> Left noSchemeSeparatorError
 
 getHost :: String -> Either UrlParseError Text
 getHost url = case fromSubList "://" url of
   Just hostAndPath -> Right (head (splitPath hostAndPath))
-  Nothing -> Left noSchemeSeparatorError
+  Nothing          -> Left noSchemeSeparatorError
 
 noSchemeSeparatorError :: UrlParseError
 noSchemeSeparatorError = UrlParseError "Could not find `://` in URL"

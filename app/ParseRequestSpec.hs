@@ -1,13 +1,13 @@
 {-# OPTIONS_GHC -Wall #-}
 module ParseRequestSpec (parseSpec, splitIntoSpecifications, SpecificationParseError) where
 
-import Data.Maybe (fromMaybe)
-import Data.Text (pack, Text)
-import Data.Text.Encoding (encodeUtf8)
-import qualified Network.HTTP.Req as Req
-import Network.HTTP.Client (CookieJar)
+import           Data.Maybe          (fromMaybe)
+import           Data.Text           (Text, pack)
+import           Data.Text.Encoding  (encodeUtf8)
+import           Network.HTTP.Client (CookieJar)
+import qualified Network.HTTP.Req    as Req
 
-import Url (convertUrl)
+import           Url                 (convertUrl)
 
 newtype SpecificationParseError = SpecificationParseError String
 
@@ -133,9 +133,9 @@ get url =
     Req.req Req.GET url Req.NoReqBody Req.bsResponse
 
 isComment :: String -> Bool
-isComment [] = False
+isComment []   = False
 isComment line = head line == '#'
 
 isCommentOrEmpty :: String -> Bool
-isCommentOrEmpty [] = True
+isCommentOrEmpty []   = True
 isCommentOrEmpty line = isComment line

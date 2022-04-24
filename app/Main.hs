@@ -1,14 +1,14 @@
 {-# OPTIONS_GHC -Wall #-}
 module Main where
 
-import System.Environment (getArgs)
-import Data.Text.Encoding (decodeUtf8)
-import qualified Data.Text.IO as T.IO
-import qualified Network.HTTP.Req as Req
-import Control.Monad.IO.Class (MonadIO)
-import Network.HTTP.Client (CookieJar)
+import           Control.Monad.IO.Class (MonadIO)
+import           Data.Text.Encoding     (decodeUtf8)
+import qualified Data.Text.IO           as T.IO
+import           Network.HTTP.Client    (CookieJar)
+import qualified Network.HTTP.Req       as Req
+import           System.Environment     (getArgs)
 
-import ParseRequestSpec (parseSpec, splitIntoSpecifications)
+import           ParseRequestSpec       (parseSpec, splitIntoSpecifications)
 
 main :: IO ()
 main = do
