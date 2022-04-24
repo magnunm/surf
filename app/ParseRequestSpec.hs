@@ -59,7 +59,7 @@ addSpecHeaders
   -> Either SpecificationParseError (Req.Option scheme)
 addSpecHeaders specification options =
   if length (lines specification) < 2
-    then Right mempty
+    then Right options
     else
       let headerLines = takeWhile ("" /=) (tail (lines specification))
           addHeaderFuncs = map addColonSeparatedHeader headerLines
