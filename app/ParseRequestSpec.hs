@@ -38,17 +38,27 @@ parseSpec specification cookies = do
   httpMethod <- getSpecMethod firstLine
   rawUrl <- getSpecRawUrl firstLine
   let body = getSpecBody specification
-  let cookieOptions = Req.cookieJar (fromMaybe mempty cookies)
   case convertUrl rawUrl of
     Left err -> Left (SpecificationParseError (show err))
     Right (Left (url, queryParams)) -> do
-      headers <- specHeaders specification
-      let options = headers <> queryParams <> cookieOptions
-      request httpMethod url body options
+      options' <- options specification cookies queryParams
+      request httpMethod url body options'
     Right (Right (url, queryParams)) -> do
-      headers <- specHeaders specification
-      let options = headers <> queryParams <> cookieOptions
-      request httpMethod url body options
+      options' <- options specification cookies queryParams
+      request httpMethod url body options'
+
+-- | Construct request options from headers read from the specification,
+-- cookies from a previous responses `Set-Cookie` header and the parsed URL
+-- query parameters.
+options
+  :: String
+  -> Maybe CookieJar
+  -> Req.Option scheme
+  -> Either SpecificationParseError (Req.Option scheme)
+options specification cookies queryParams = do
+  let cookieOptions = Req.cookieJar (fromMaybe mempty cookies)
+  headers <- specHeaders specification
+  Right (queryParams <> cookieOptions <> headers)
 
 -- | Each line right after the method and URL is interpreted as specifying a
 -- header. Add the headers to the request options.
@@ -69,7 +79,7 @@ addColonSeparatedHeader
   :: String
   -> Req.Option scheme
   -> Either SpecificationParseError (Req.Option scheme)
-addColonSeparatedHeader line options =
+addColonSeparatedHeader line other =
   if length rest < 2
     then
       Left $ SpecificationParseError (
@@ -80,7 +90,7 @@ addColonSeparatedHeader line options =
           encodedValue = encodeUtf8 . pack $ value
           encodedName = encodeUtf8 . pack $ name
       in
-      Right $ options <> Req.header encodedName encodedValue
+      Right $ other <> Req.header encodedName encodedValue
   where (name, rest) = break (':' ==) line
 
 -- | Anything after the first blank line of the specification is interpreted as
