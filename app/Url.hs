@@ -27,9 +27,7 @@ convertUrl rawUrl = do
   let addPathSegements = flip (foldl (/:)) pathSegments
   let untilQueryParams = bimap addPathSegements addPathSegements hostAndScheme'
   let queryParams' = queryParams rawQueryParams
-  Right $ case untilQueryParams of
-    Left url  -> Left (url, queryParams')
-    Right url -> Right (url, queryParams')
+  Right $ bimap (, queryParams') (, queryParams') untilQueryParams
 
 -- | Extract path and query parameters. Assumes '://' is present in the raw URL.
 pathAndQueryParams :: String -> (String, String)

@@ -37,3 +37,4 @@ executable surf
     -- LANGUAGE extensions
     default-extensions:
       DataKinds
+      TupleSections
