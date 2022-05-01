@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 module Url (UrlParseError, convertUrl) where
 
+import           Data.Bifunctor   (bimap)
 import           Data.List        (inits, isPrefixOf, isSuffixOf, tails)
 import           Data.Maybe       (fromJust)
 import           Data.Text        (Text, pack)
@@ -23,7 +24,8 @@ convertUrl rawUrl = do
   -- Safe here as long as the host and scheme is extracted first
   let (path, rawQueryParams) = pathAndQueryParams rawUrl
   let pathSegments = splitPath path
-  let untilQueryParams = (`appendPathSegements` pathSegments) <$> hostAndScheme'
+  let addPathSegements = flip (foldl (/:)) pathSegments
+  let untilQueryParams = bimap addPathSegements addPathSegements hostAndScheme'
   let queryParams' = queryParams rawQueryParams
   Right $ case untilQueryParams of
     Left url  -> Left (url, queryParams')
@@ -49,9 +51,6 @@ queryParams rawQueryParams =
     firstQueryParam = Req.queryParam (pack name) value
   in
     firstQueryParam <> queryParams rest
-
-appendPathSegements :: Req.Url scheme -> [Text] -> Req.Url scheme
-appendPathSegements = foldl (/:)
 
 splitPath :: String -> [Text]
 splitPath "" = []

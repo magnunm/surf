@@ -7,7 +7,7 @@ Accept-Encoding: gzip
 
 # Comment separating two requests
 
-GET https://httpbin.org/get?flag
+GET http://httpbin.org/get?flag
 Accept-Encoding: gzip
 Baz: Qux
 
