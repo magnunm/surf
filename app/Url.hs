@@ -3,7 +3,6 @@ module Url (UrlParseError, convertUrl) where
 
 import           Data.Bifunctor   (bimap)
 import           Data.List        (inits, isPrefixOf, isSuffixOf, tails)
-import           Data.Maybe       (fromJust)
 import           Data.Text        (Text, pack)
 import           Network.HTTP.Req (Scheme (Http, Https), (/:))
 import qualified Network.HTTP.Req as Req
@@ -21,20 +20,24 @@ type ParsedUrl =
 convertUrl :: String -> Either UrlParseError ParsedUrl
 convertUrl rawUrl = do
   hostAndScheme' <- hostAndScheme rawUrl
-  -- Safe here as long as the host and scheme is extracted first
-  let (path, rawQueryParams) = pathAndQueryParams rawUrl
+  (path, rawQueryParams) <- pathAndQueryParams rawUrl
   let pathSegments = splitPath path
-  let addPathSegements = flip (foldl (/:)) pathSegments
-  let untilQueryParams = bimap addPathSegements addPathSegements hostAndScheme'
-  let queryParams' = queryParams rawQueryParams
+      addPathSegements = flip (foldl (/:)) pathSegments
+      untilQueryParams = bimap addPathSegements addPathSegements hostAndScheme'
+      queryParams' = queryParams rawQueryParams
   Right $ bimap (, queryParams') (, queryParams') untilQueryParams
 
 -- | Extract path and query parameters. Assumes '://' is present in the raw URL.
-pathAndQueryParams :: String -> (String, String)
-pathAndQueryParams rawUrl =
-  (dropWhile (/= '/') hostAndPath, rawQueryParams)
-  where fromScheme = fromJust $ fromSubList "://" rawUrl
+pathAndQueryParams :: String -> Either UrlParseError (String, String)
+pathAndQueryParams rawUrl = do
+  case fromSubList "://" rawUrl of
+    Just fromScheme ->
+      let
         (hostAndPath, rawQueryParams) = break (== '?') fromScheme
+      in
+        Right (dropWhile (/= '/') hostAndPath, rawQueryParams)
+
+    Nothing -> Left noSchemeSeparatorError
 
 queryParams :: String -> Req.Option scheme
 queryParams [] = mempty
