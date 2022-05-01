@@ -104,7 +104,8 @@ getSpecRawUrl :: String -> Either SpecificationParseError String
 getSpecRawUrl line =
   let lineWords = words line in
     case lineWords of
-      (_method:rest) -> Right (head rest)
+      -- Ignore everything after '?' (query parameters)
+      (_method:rest) -> Right (takeWhile (/= '?') (head rest))
       _ -> Left (SpecificationParseError "Could not find URL from single word line, first word interpreted as method")
 
 request
