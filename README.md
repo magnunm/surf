@@ -23,5 +23,4 @@ is to create a stand-alone CLI based on a similar idea.
 
 ### Todo
 
-- URL query parameters
 - Nicer printing of responses

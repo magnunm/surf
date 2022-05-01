@@ -7,9 +7,9 @@ Accept-Encoding: gzip
 
 # Comment separating two requests
 
-GET https://httpbin.org/get
+GET https://httpbin.org/get?flag
 Accept-Encoding: gzip
 Baz: Qux
 
 # Another comment, marking the start of the third request
-GET https://httpbin.org/get
+GET https://httpbin.org/get?foo=bar&baz=qux&flag
