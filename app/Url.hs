@@ -2,6 +2,7 @@
 module Url (UrlParseError, convertUrl) where
 
 import           Data.List        (inits, isPrefixOf, isSuffixOf, tails)
+import           Data.Maybe       (fromJust)
 import           Data.Text        (Text, pack)
 import           Network.HTTP.Req (Scheme (Http, Https), (/:))
 import qualified Network.HTTP.Req as Req
@@ -13,24 +14,26 @@ instance Show UrlParseError where
 
 type ParsedUrl = Either (Req.Url 'Http, Req.Option 'Http) (Req.Url 'Https, Req.Option 'Https)
 
--- | Convert a string URL to Request's Url data type together with Options
+-- | Convert a string URL to Request's Url data type together with an Option
 -- containing the URL query parameters (if any).
 convertUrl :: String -> Either UrlParseError ParsedUrl
 convertUrl rawUrl = do
-  untilPath <- hostAndScheme rawUrl
-  hostPathAndQueryParams <- case fromSubList "://" rawUrl of
-    Just hostPathAndQueryParams -> Right hostPathAndQueryParams
-    Nothing                     -> Left noSchemeSeparatorError
-  let (hostAndPath, rawQueryParams) = break (== '?') hostPathAndQueryParams
+  hostAndScheme' <- hostAndScheme rawUrl
+  -- Safe here as long as the host and scheme is extracted first
+  let (path, rawQueryParams) = pathAndQueryParams rawUrl
+  let pathSegments = splitPath path
+  let untilQueryParams = (`appendPathSegements` pathSegments) <$> hostAndScheme'
   let queryParams = specQueryParams rawQueryParams
-  let hostAndPathSegments = splitPath hostAndPath
-  let untilQueryParams = if length hostAndPathSegments < 2
-                         then Right untilPath -- No path
-                         else Right $ (`appendPathSegements` tail hostAndPathSegments) <$> untilPath
-  case untilQueryParams of
-    Right (Left url)  -> Right (Left (url, queryParams))
-    Right (Right url) -> Right (Right (url, queryParams))
-    Left err          -> Left err
+  Right $ case untilQueryParams of
+    Left url  -> Left (url, queryParams)
+    Right url -> Right (url, queryParams)
+
+-- | Extract path and query parameters. Assumes '://' is present in the raw URL.
+pathAndQueryParams :: String -> (String, String)
+pathAndQueryParams rawUrl =
+  (dropWhile (/= '/') hostAndPath, rawQueryParams)
+  where fromScheme = fromJust $ fromSubList "://" rawUrl
+        (hostAndPath, rawQueryParams) = break (== '?') fromScheme
 
 specQueryParams :: String -> Req.Option scheme
 specQueryParams [] = mempty
