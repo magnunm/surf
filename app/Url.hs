@@ -11,22 +11,38 @@ newtype UrlParseError = UrlParseError String
 instance Show UrlParseError where
   show (UrlParseError message) = "Could not parse URL: " ++ message
 
--- | Convert a string URL to Request's Url data type
-convertUrl
-  :: String
-     -> Either
-          UrlParseError
-          (Either (Req.Url 'Http) (Req.Url 'Https))
-convertUrl url = do
-  untilPath <- hostAndScheme url
-  hostAndPath <- case fromSubList "://" url of
-    Just hostAndPath -> Right hostAndPath
-    Nothing          -> Left noSchemeSeparatorError
+type ParsedUrl = Either (Req.Url 'Http, Req.Option 'Http) (Req.Url 'Https, Req.Option 'Https)
+
+-- | Convert a string URL to Request's Url data type together with Options
+-- containing the URL query parameters (if any).
+convertUrl :: String -> Either UrlParseError ParsedUrl
+convertUrl rawUrl = do
+  untilPath <- hostAndScheme rawUrl
+  hostPathAndQueryParams <- case fromSubList "://" rawUrl of
+    Just hostPathAndQueryParams -> Right hostPathAndQueryParams
+    Nothing                     -> Left noSchemeSeparatorError
+  let (hostAndPath, rawQueryParams) = break (== '?') hostPathAndQueryParams
+  let queryParams = specQueryParams rawQueryParams
   let hostAndPathSegments = splitPath hostAndPath
-  if length hostAndPathSegments < 2
-    then Right untilPath -- No path
-    else
-      Right $ (`appendPathSegements` tail hostAndPathSegments) <$> untilPath
+  let untilQueryParams = if length hostAndPathSegments < 2
+                         then Right untilPath -- No path
+                         else Right $ (`appendPathSegements` tail hostAndPathSegments) <$> untilPath
+  case untilQueryParams of
+    Right (Left url)  -> Right (Left (url, queryParams))
+    Right (Right url) -> Right (Right (url, queryParams))
+    Left err          -> Left err
+
+specQueryParams :: String -> Req.Option scheme
+specQueryParams [] = mempty
+specQueryParams rawQueryParams =
+  let
+    sanitizedInput = dropWhile (\x -> (x == '?') || (x == '&')) rawQueryParams
+    (rawFirstQueryParam, rest) = break (== '&') sanitizedInput
+    (name, valueAndEquals) = break (== '=') rawFirstQueryParam
+    value = if length valueAndEquals < 2 then Nothing else Just (pack (tail valueAndEquals))
+    firstQueryParam = Req.queryParam (pack name) value
+  in
+    firstQueryParam <> specQueryParams rest
 
 appendPathSegements :: Req.Url scheme -> [Text] -> Req.Url scheme
 appendPathSegements = foldl (/:)

@@ -41,13 +41,13 @@ parseSpec specification cookies = do
   let cookieOptions = Req.cookieJar (fromMaybe mempty cookies)
   case convertUrl rawUrl of
     Left err -> Left (SpecificationParseError (show err))
-    Right (Left url) -> do
+    Right (Left (url, queryParams)) -> do
       options' <- addSpecHeaders specification cookieOptions
-      options <- addSpecQueryParams firstLine options'
+      let options = options' <> queryParams
       request httpMethod url body options
-    Right (Right url) -> do
+    Right (Right (url, queryParams)) -> do
       options' <- addSpecHeaders specification cookieOptions
-      options <- addSpecQueryParams firstLine options'
+      let options = options' <> queryParams
       request httpMethod url body options
 
 -- | Each line right after the method and URL is interpreted as specifying a
@@ -64,30 +64,6 @@ addSpecHeaders specification options =
           addHeaderFuncs = map addColonSeparatedHeader headerLines
       in
         foldl (>>=) (Right options) addHeaderFuncs
-
-addSpecQueryParams :: String -> Req.Option scheme -> Either SpecificationParseError (Req.Option scheme)
-addSpecQueryParams specFirstLine options =
-  if length lineWords < 2
-    then
-      Left (SpecificationParseError "Could not find query parameters from single word line. First word used as the HTTP method.")
-    else
-      let rawQueryParams = dropWhile (/= '?') (head (tail lineWords))
-      in
-        Right $ specQueryParams rawQueryParams options
-  where lineWords = words specFirstLine
-
-
-specQueryParams :: String -> Req.Option scheme -> Req.Option scheme
-specQueryParams [] options = options
-specQueryParams rawQueryParams options =
-  let
-    sanitizedInput = dropWhile (\x -> (x == '?') || (x == '&')) rawQueryParams
-    (rawFirstQueryParam, rest) = break (== '&') sanitizedInput
-    (name, valueAndEquals) = break (== '=') rawFirstQueryParam
-    value = if length valueAndEquals < 2 then Nothing else Just (pack (tail valueAndEquals))
-    firstQueryParam = Req.queryParam (pack name) value
-  in
-    firstQueryParam <> specQueryParams rest options
 
 -- | Add a header from two colon-separated strings to the options
 addColonSeparatedHeader
@@ -130,8 +106,7 @@ getSpecRawUrl :: String -> Either SpecificationParseError String
 getSpecRawUrl line =
   let lineWords = words line in
     case lineWords of
-      -- Ignore everything after '?' (query parameters)
-      (_method:rest) -> Right (takeWhile (/= '?') (head rest))
+      (_method:rest) -> Right (head rest)
       _ -> Left (SpecificationParseError "Could not find URL from single word line, first word interpreted as method")
 
 request
