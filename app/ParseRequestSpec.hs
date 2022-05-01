@@ -42,28 +42,27 @@ parseSpec specification cookies = do
   case convertUrl rawUrl of
     Left err -> Left (SpecificationParseError (show err))
     Right (Left (url, queryParams)) -> do
-      options' <- addSpecHeaders specification cookieOptions
-      let options = options' <> queryParams
+      headers <- specHeaders specification
+      let options = headers <> queryParams <> cookieOptions
       request httpMethod url body options
     Right (Right (url, queryParams)) -> do
-      options' <- addSpecHeaders specification cookieOptions
-      let options = options' <> queryParams
+      headers <- specHeaders specification
+      let options = headers <> queryParams <> cookieOptions
       request httpMethod url body options
 
 -- | Each line right after the method and URL is interpreted as specifying a
 -- header. Add the headers to the request options.
-addSpecHeaders
+specHeaders
   :: String
-  -> Req.Option scheme
   -> Either SpecificationParseError (Req.Option scheme)
-addSpecHeaders specification options =
+specHeaders specification =
   if length (lines specification) < 2
-    then Right options
+    then Right mempty
     else
       let headerLines = takeWhile ("" /=) (tail (lines specification))
           addHeaderFuncs = map addColonSeparatedHeader headerLines
       in
-        foldl (>>=) (Right options) addHeaderFuncs
+        foldl (>>=) (Right mempty) addHeaderFuncs
 
 -- | Add a header from two colon-separated strings to the options
 addColonSeparatedHeader
