@@ -29,9 +29,10 @@ convertUrl rawUrl = do
     Right url -> Right (url, queryParams)
 
 -- | Extract path and query parameters. Assumes '://' is present in the raw URL.
+-- Path does not the initial forward slash.
 pathAndQueryParams :: String -> (String, String)
 pathAndQueryParams rawUrl =
-  (dropWhile (/= '/') hostAndPath, rawQueryParams)
+  (dropWhile (== '/') (dropWhile (/= '/') hostAndPath), rawQueryParams)
   where fromScheme = fromJust $ fromSubList "://" rawUrl
         (hostAndPath, rawQueryParams) = break (== '?') fromScheme
 
@@ -50,6 +51,8 @@ specQueryParams rawQueryParams =
 appendPathSegements :: Req.Url scheme -> [Text] -> Req.Url scheme
 appendPathSegements = foldl (/:)
 
+-- | Split a path into its segments.
+-- Path should not include initial forward slash.
 splitPath :: String -> [Text]
 splitPath "" = []
 splitPath url = case length fromSlash of
