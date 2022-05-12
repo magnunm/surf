@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -Wall #-}
 module Url (UrlParseError, convertUrl) where
 
+import           Data.Bifunctor   (bimap)
 import           Data.List        (inits, isPrefixOf, isSuffixOf, tails)
-import           Data.Maybe       (fromJust)
 import           Data.Text        (Text, pack)
 import           Network.HTTP.Req (Scheme (Http, Https), (/:))
 import qualified Network.HTTP.Req as Req
@@ -12,44 +12,50 @@ newtype UrlParseError = UrlParseError String
 instance Show UrlParseError where
   show (UrlParseError message) = "Could not parse URL: " ++ message
 
-type ParsedUrl = Either (Req.Url 'Http, Req.Option 'Http) (Req.Url 'Https, Req.Option 'Https)
+type ParsedUrl =
+  Either (Req.Url 'Http, Req.Option 'Http) (Req.Url 'Https, Req.Option 'Https)
 
 -- | Convert a string URL to Request's Url data type together with an Option
 -- containing the URL query parameters (if any).
 convertUrl :: String -> Either UrlParseError ParsedUrl
 convertUrl rawUrl = do
   hostAndScheme' <- hostAndScheme rawUrl
-  -- Safe here as long as the host and scheme is extracted first
-  let (path, rawQueryParams) = pathAndQueryParams rawUrl
+  (path, rawQueryParams) <- pathAndQueryParams rawUrl
   let pathSegments = splitPath path
-  let untilQueryParams = (`appendPathSegements` pathSegments) <$> hostAndScheme'
-  let queryParams = specQueryParams rawQueryParams
-  Right $ case untilQueryParams of
-    Left url  -> Left (url, queryParams)
-    Right url -> Right (url, queryParams)
+      addPathSegements = flip (foldl (/:)) pathSegments
+      untilQueryParams = bimap addPathSegements addPathSegements hostAndScheme'
+      queryParams' = queryParams rawQueryParams
+  Right $ bimap (, queryParams') (, queryParams') untilQueryParams
 
 -- | Extract path and query parameters. Assumes '://' is present in the raw URL.
 -- Path does not the initial forward slash.
-pathAndQueryParams :: String -> (String, String)
-pathAndQueryParams rawUrl =
-  (dropWhile (== '/') (dropWhile (/= '/') hostAndPath), rawQueryParams)
-  where fromScheme = fromJust $ fromSubList "://" rawUrl
+pathAndQueryParams :: String -> Either UrlParseError (String, String)
+pathAndQueryParams rawUrl = do
+  case fromSubList "://" rawUrl of
+    Just fromScheme ->
+      let
         (hostAndPath, rawQueryParams) = break (== '?') fromScheme
+      in
+        Right (
+          dropWhile (== '/') (dropWhile (/= '/') hostAndPath),
+          rawQueryParams
+        )
 
-specQueryParams :: String -> Req.Option scheme
-specQueryParams [] = mempty
-specQueryParams rawQueryParams =
+    Nothing -> Left noSchemeSeparatorError
+
+queryParams :: String -> Req.Option scheme
+queryParams [] = mempty
+queryParams rawQueryParams =
   let
-    sanitizedInput = dropWhile (\x -> (x == '?') || (x == '&')) rawQueryParams
-    (rawFirstQueryParam, rest) = break (== '&') sanitizedInput
+    rawQueryParams' = dropWhile (\x -> (x == '?') || (x == '&')) rawQueryParams
+    (rawFirstQueryParam, rest) = break (== '&') rawQueryParams'
     (name, valueAndEquals) = break (== '=') rawFirstQueryParam
-    value = if length valueAndEquals < 2 then Nothing else Just (pack (tail valueAndEquals))
+    value = if length valueAndEquals < 2
+            then Nothing
+            else Just (pack (tail valueAndEquals))
     firstQueryParam = Req.queryParam (pack name) value
   in
-    firstQueryParam <> specQueryParams rest
-
-appendPathSegements :: Req.Url scheme -> [Text] -> Req.Url scheme
-appendPathSegements = foldl (/:)
+    firstQueryParam <> queryParams rest
 
 -- | Split a path into its segments.
 -- Path should not include initial forward slash.
