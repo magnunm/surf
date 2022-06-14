@@ -41,3 +41,4 @@ executable surf
     default-extensions:
       DataKinds
       TupleSections
+      OverloadedStrings

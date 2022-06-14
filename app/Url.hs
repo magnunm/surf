@@ -63,7 +63,7 @@ splitPath :: String -> [Text]
 splitPath "" = []
 splitPath url = case length fromSlash of
     0 -> [pack untilSlash]
-    1 -> [pack untilSlash, pack ""] -- Ends in forward slash
+    1 -> [pack untilSlash, ""] -- Ends in forward slash
     _ -> pack untilSlash : splitPath (tail fromSlash)
   where (untilSlash, fromSlash) = break (== '/') url
 

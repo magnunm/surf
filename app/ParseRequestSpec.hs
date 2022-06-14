@@ -99,7 +99,7 @@ getSpecBody :: String -> Text
 getSpecBody specification =
   if length fromFirstBlankLine < 2
     -- No blank line or just a blank line: no body
-    then pack ""
+    then ""
     -- Rest of spec interpreted as the request body, empty initial lines ignored
     else pack $ unlines $ dropWhile ("" ==) fromFirstBlankLine
   where fromFirstBlankLine = dropWhile ("" /=) (lines specification)

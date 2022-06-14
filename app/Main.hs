@@ -62,11 +62,11 @@ showResponse :: Req.BsResponse -> [Chunk]
 showResponse response =
   [
     (chunk . decodeUtf8 . Req.responseBody) response
-  , (chunk . pack) "\n// "
+  , "\n// "
     <> chunk (showHttpVersion response)
-    <> (chunk . pack) " "
+    <> " "
     <> chunk (showStatus response)
-    <> (chunk . pack) "\n"
+    <> "\n"
     <> chunk (showHeaders response)
     & fore grey & italic
   ]
@@ -76,7 +76,7 @@ showHttpVersion = pack . show . responseVersion . Req.toVanillaResponse
 
 showStatus :: Req.BsResponse -> Text
 showStatus response = (pack . show . Req.responseStatusCode) response
-  <> pack " "
+  <> " "
   <> (decodeUtf8 . Req.responseStatusMessage) response
 
 showHeaders :: Req.BsResponse -> Text
@@ -84,8 +84,8 @@ showHeaders response = foldl (<>) empty (map showHeader (responseHeaders vanilla
   where vanillaResponse = Req.toVanillaResponse response
 
 showHeader :: (CI ByteString, ByteString) -> Text
-showHeader (name, value) = pack "// "
+showHeader (name, value) = "// "
   <> decodeUtf8 (original name)
-  <> pack ": "
+  <> ": "
   <> decodeUtf8 value
-  <> pack "\n"
+  <> "\n"
