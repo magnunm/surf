@@ -25,6 +25,15 @@ runSpecsFromFile specsFileName = do
   let specifications = splitIntoSpecifications fileContent
   runSpecs specifications Nothing
 
+-- | HTTP config to avoid raising exceptions on non-success status codes and
+-- disable retries. In the context of this client we want the raw responses,
+-- regardless of status code.
+httpConfig :: Req.HttpConfig
+httpConfig = Req.defaultHttpConfig
+  { Req.httpConfigCheckResponse = \_ _ _ -> Nothing
+  , Req.httpConfigRetryJudge = \_ _ -> False
+  }
+
 runSpecs :: [String] -> Maybe CookieJar -> IO ()
 runSpecs [] _cookies = return ()
 runSpecs specifications cookies =
