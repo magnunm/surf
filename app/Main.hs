@@ -1,13 +1,17 @@
 {-# OPTIONS_GHC -Wall #-}
 module Main where
 
-import           Data.Text.Encoding  (decodeUtf8)
-import qualified Data.Text.IO        as T.IO
-import           Network.HTTP.Client (CookieJar)
-import qualified Network.HTTP.Req    as Req
-import           System.Environment  (getArgs)
+import           Data.ByteString      (ByteString)
+import           Data.CaseInsensitive (CI, original)
+import           Data.Text            (Text, empty, pack)
+import           Data.Text.Encoding   (decodeUtf8)
+import qualified Data.Text.IO         as T.IO
+import           Network.HTTP.Client  (CookieJar, responseHeaders,
+                                       responseVersion)
+import qualified Network.HTTP.Req     as Req
+import           System.Environment   (getArgs)
 
-import           ParseRequestSpec    (parseSpec, splitIntoSpecifications)
+import           ParseRequestSpec     (parseSpec, splitIntoSpecifications)
 
 main :: IO ()
 main = do
@@ -36,15 +40,42 @@ httpConfig = Req.defaultHttpConfig
 
 runSpecs :: [String] -> Maybe CookieJar -> IO ()
 runSpecs [] _cookies = return ()
-runSpecs specifications cookies =
-  case parseSpec (head specifications) cookies of
+runSpecs (firstSpec:furtherSpecs) cookies =
+  case parseSpec firstSpec cookies of
     Left err -> putStr (show err)
     Right request -> do
-      response <- Req.runReq Req.defaultHttpConfig request
+      printRequest firstSpec
+      response <- Req.runReq httpConfig request
       printResponse response
-      runSpecs (tail specifications) (Just (Req.responseCookieJar response))
+      runSpecs furtherSpecs (Just (Req.responseCookieJar response))
+
+printRequest :: String -> IO ()
+printRequest spec = putStr $ head (lines spec) ++ "\n\n"
 
 printResponse :: Req.BsResponse -> IO ()
-printResponse response = do
-  (T.IO.putStr . decodeUtf8 . Req.responseBody) response
-  putStr "\n"
+printResponse response = T.IO.putStr $ showResponse response
+
+showResponse :: Req.BsResponse -> Text
+showResponse response = (decodeUtf8 . Req.responseBody) response
+  <> pack "\n// " <> showHttpVersion response <> pack " " <> showStatus response
+  <> pack "\n" <> showHeaders response
+  <> pack "\n"
+
+showHttpVersion :: Req.BsResponse -> Text
+showHttpVersion = pack . show . responseVersion . Req.toVanillaResponse
+
+showStatus :: Req.BsResponse -> Text
+showStatus response = (pack . show . Req.responseStatusCode) response
+  <> pack " "
+  <> (decodeUtf8 . Req.responseStatusMessage) response
+
+showHeaders :: Req.BsResponse -> Text
+showHeaders response = foldl (<>) empty (map showHeader (responseHeaders vanillaResponse))
+  where vanillaResponse = Req.toVanillaResponse response
+
+showHeader :: (CI ByteString, ByteString) -> Text
+showHeader (name, value) = pack "// "
+  <> decodeUtf8 (original name)
+  <> pack ": "
+  <> decodeUtf8 value
+  <> pack "\n"

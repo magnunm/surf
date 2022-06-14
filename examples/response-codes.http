@@ -1,0 +1,10 @@
+GET https://httpbin.org/status/400
+
+#
+GET https://httpbin.org/status/500
+
+#
+GET https://httpbin.org/status/404
+
+#
+GET https://httpbin.org/status/202

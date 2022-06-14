@@ -20,7 +20,3 @@ requests you create for re-use later. Using plain-text makes sharing these
 saved requests with others, or adding them to version-control simple.
 `restclient.el` solves that, but requires an Emacs installation. The goal here
 is to create a stand-alone CLI based on a similar idea.
-
-### Todo
-
-- Nicer printing of responses
