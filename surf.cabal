@@ -32,7 +32,8 @@ executable surf
         req ^>= 3.9.0,
         text ^>= 1.2.4,
         bytestring ^>= 0.10.12.0,
-        case-insensitive ^>= 1.2.1.0
+        case-insensitive ^>= 1.2.1.0,
+        rainbow ^>= 0.34.2.2
     hs-source-dirs:   app
     default-language: Haskell2010
 

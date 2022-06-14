@@ -3,12 +3,14 @@ module Main where
 
 import           Data.ByteString      (ByteString)
 import           Data.CaseInsensitive (CI, original)
+import           Data.Function        ((&))
 import           Data.Text            (Text, empty, pack)
 import           Data.Text.Encoding   (decodeUtf8)
-import qualified Data.Text.IO         as T.IO
 import           Network.HTTP.Client  (CookieJar, responseHeaders,
                                        responseVersion)
 import qualified Network.HTTP.Req     as Req
+import           Rainbow              (Chunk, blue, bold, chunk, fore, grey,
+                                       italic, putChunkLn, putChunksLn)
 import           System.Environment   (getArgs)
 
 import           ParseRequestSpec     (parseSpec, splitIntoSpecifications)
@@ -50,16 +52,24 @@ httpConfig = Req.defaultHttpConfig
   }
 
 printRequest :: String -> IO ()
-printRequest spec = putStr $ head (lines spec) ++ "\n\n"
+printRequest spec =
+  putChunkLn $ chunk (pack (head (lines spec) ++ "\n")) & bold & fore blue
 
 printResponse :: Req.BsResponse -> IO ()
-printResponse response = T.IO.putStr $ showResponse response
+printResponse response = putChunksLn $ showResponse response
 
-showResponse :: Req.BsResponse -> Text
-showResponse response = (decodeUtf8 . Req.responseBody) response
-  <> pack "\n// " <> showHttpVersion response <> pack " " <> showStatus response
-  <> pack "\n" <> showHeaders response
-  <> pack "\n"
+showResponse :: Req.BsResponse -> [Chunk]
+showResponse response =
+  [
+    (chunk . decodeUtf8 . Req.responseBody) response
+  , (chunk . pack) "\n// "
+    <> chunk (showHttpVersion response)
+    <> (chunk . pack) " "
+    <> chunk (showStatus response)
+    <> (chunk . pack) "\n"
+    <> chunk (showHeaders response)
+    & fore grey & italic
+  ]
 
 showHttpVersion :: Req.BsResponse -> Text
 showHttpVersion = pack . show . responseVersion . Req.toVanillaResponse
