@@ -5,10 +5,10 @@ separated by comment lines, starting with a `#`. Cookies are stored
 automatically between the requests within a given file. Inspired by
 [restclient.el](https://github.com/pashky/restclient.el).
 
-Build and run using [stack](https://docs.haskellstack.org/en/stable/README/):
+Install using [stack](https://docs.haskellstack.org/en/stable/README/):
 ```sh
-stack build
-stack exec surf -- "examples/basic-requests.http"
+stack install
+surf "examples/basic-requests.http"
 ```
 
 See the `examples/` directory for more example specification files.
