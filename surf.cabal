@@ -24,7 +24,8 @@ executable surf
 
     other-modules:
       Url,
-      ParseRequestSpec
+      ParseRequestSpec,
+      InjectEnvVars
 
     build-depends:
         base ^>=4.14.3.0,

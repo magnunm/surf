@@ -1,0 +1,7 @@
+POST https://httpbin.org/post
+Content-Type: application/json
+
+{"shell": "${SHELL}", "home": "${HOME}"}
+
+# The syntax to inject environment variables is using dollar and curly bracket:
+GET http://httpbin.org/get?term=${TERMINAL}

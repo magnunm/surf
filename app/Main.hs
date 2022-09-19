@@ -13,6 +13,7 @@ import           Rainbow              (Chunk, blue, bold, chunk, fore, grey,
                                        italic, putChunkLn, putChunksLn)
 import           System.Environment   (getArgs)
 
+import           InjectEnvVars        (injectEnvVars)
 import           ParseRequestSpec     (parseSpec, splitIntoSpecifications)
 
 main :: IO ()
@@ -24,12 +25,18 @@ main = do
          runSpecsFromFile filename
 
 -- | Run all the request specifications in the passed file. Each request
--- specification is separated by a comment line (starting with `#`)
+-- specification is separated by a comment line (starting with `#`).
+-- Sub-strings in the format '${VAR}' are replaced by the value of the
+-- environment variable 'VAR'
 runSpecsFromFile :: String -> IO ()
 runSpecsFromFile specsFileName = do
   fileContent <- readFile specsFileName
-  let specifications = splitIntoSpecifications fileContent
-  runSpecs specifications Nothing
+  fileContentWithInjectedEnv <- injectEnvVars fileContent
+  case fileContentWithInjectedEnv of
+    Left err -> print err
+    Right content ->
+      let specifications = splitIntoSpecifications content
+      in runSpecs specifications Nothing
 
 runSpecs :: [String] -> Maybe CookieJar -> IO ()
 runSpecs [] _cookies = return ()

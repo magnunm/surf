@@ -2,7 +2,9 @@
 
 Run a series of HTTP(S) requests specified in a plain-text file. Requests are
 separated by comment lines, starting with a `#`. Cookies are stored
-automatically between the requests within a given file. Inspired by
+automatically between the requests within a given file. Environment variables
+can be injected into the requests by using `${ENVIRONMENT_VAR}` in the
+specification file. Inspired by
 [restclient.el](https://github.com/pashky/restclient.el).
 
 Install using [stack](https://docs.haskellstack.org/en/stable/README/):
