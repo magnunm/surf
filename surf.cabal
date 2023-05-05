@@ -1,45 +1,70 @@
-cabal-version:      2.4
-name:               surf
-version:            0.1.0.0
+cabal-version: 1.12
 
-synopsis: A HTTP(S) client that reads requests from a file
+-- This file has been generated from package.yaml by hpack version 0.35.1.
+--
+-- see: https://github.com/sol/hpack
 
--- A longer description of the package.
--- description:
+name:           surf
+version:        1.0.0.0
+homepage:       https://github.com/magnunm/surf#readme
+bug-reports:    https://github.com/magnunm/surf/issues
+author:         Magnus Nybråten Malmquist
+maintainer:     Magnus Nybråten Malmquist
+copyright:      2023 Magnus Nybråten Malmquist
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
 
--- A URL where users can report bugs.
--- bug-reports:
-license:            BSD-3-Clause
-license-file:       LICENSE
-author:             Magnus Nybråten Malmquist
-maintainer:         magnusnym97@gmail.com
+source-repository head
+  type: git
+  location: https://github.com/magnunm/surf
 
--- A copyright notice.
--- copyright:
--- category:
-extra-source-files: CHANGELOG.md
-
-executable surf
-    main-is:          Main.hs
-
-    other-modules:
-      Url,
-      ParseRequestSpec,
+library
+  exposed-modules:
       InjectEnvVars
-
-    build-depends:
-        base ^>=4.14.3.0,
-        http-client ^>= 0.6.4.1,
-        req ^>= 3.9.0,
-        text ^>= 1.2.4,
-        bytestring ^>= 0.10.12.0,
-        case-insensitive ^>= 1.2.1.0,
-        rainbow ^>= 0.34.2.2
-    hs-source-dirs:   app
-    default-language: Haskell2010
-
-    -- LANGUAGE extensions
-    default-extensions:
+      Lib
+      ParseRequestSpec
+      Url
+  other-modules:
+      Paths_surf
+  hs-source-dirs:
+      src
+  default-extensions:
       DataKinds
       TupleSections
       OverloadedStrings
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , bytestring >=0.10.12.0
+    , case-insensitive >=1.2.1.0
+    , http-client >=0.6.4.1
+    , rainbow >=0.34.2.2
+    , req >=3.9.0
+    , text >=1.2.4
+  default-language: Haskell2010
+
+executable surf
+  main-is: Main.hs
+  other-modules:
+      Paths_surf
+  hs-source-dirs:
+      app
+  default-extensions:
+      DataKinds
+      TupleSections
+      OverloadedStrings
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring >=0.10.12.0
+    , case-insensitive >=1.2.1.0
+    , http-client >=0.6.4.1
+    , rainbow >=0.34.2.2
+    , req >=3.9.0
+    , surf
+    , text >=1.2.4
+  default-language: Haskell2010
